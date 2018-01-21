@@ -1,0 +1,62 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+
+
+class WeatherMan:
+
+    def __init__(self):
+        print("Checking the barometers...")
+
+    def get_weather(self):
+        driver = webdriver.Chrome()
+        driver.maximize_window()
+        driver.get("https://google.com")
+        driver.implicitly_wait(5)
+
+        search_location = input(str("Please enter the zip code you'd like a forecast for: "))
+
+        search_box = driver.find_element(By.XPATH, "//*[@id='lst-ib']")
+        search_box.send_keys(search_location + " weather")
+        search_button = driver.find_element(By.XPATH, ".//*[@id='tsf']/div[2]/div[3]/center/input[1]")
+        search_button.send_keys(Keys.RETURN)
+
+        # Basic Weather Conditions
+        location = driver.find_element(By.XPATH, ".//*[@id='wob_loc']").text
+        summary = driver.find_element(By.XPATH, ".//*[@id='wob_dc']").text
+        temperature = driver.find_element(By.XPATH, ".//*[@id='wob_tm']").text
+        unit = driver.find_element(By.XPATH, ".//*[@id='wob_d']/div/div[1]/div/div[2]/span[1]").text
+        precipitation_label = driver.find_element(By.XPATH, ".//*[@id='wob_d']/div/div[2]/div[1]").text
+        humidity_label = driver.find_element(By.XPATH, ".//*[@id='wob_d']/div/div[2]/div[2]").text
+        wind_label = driver.find_element(By.XPATH, ".//*[@id='wob_d']/div/div[2]/div[3]").text
+
+        # 7-Day Forecast
+        day_1 = driver.find_element(By.XPATH, ".//*[@id='wob_dp']/div[1]").text
+        day_2 = driver.find_element(By.XPATH, ".//*[@id='wob_dp']/div[2]").text
+        day_3 = driver.find_element(By.XPATH, ".//*[@id='wob_dp']/div[3]").text
+        day_4 = driver.find_element(By.XPATH, ".//*[@id='wob_dp']/div[4]").text
+        day_5 = driver.find_element(By.XPATH, ".//*[@id='wob_dp']/div[5]").text
+        day_6 = driver.find_element(By.XPATH, ".//*[@id='wob_dp']/div[6]").text
+        day_7 = driver.find_element(By.XPATH, ".//*[@id='wob_dp']/div[7]").text
+
+        # Printing Basic Weather Conditions
+        print("\n")
+        print(location + " -  Current Weather \n")
+        print("Current conditions: " + summary + "\n")
+        print("The current temperature is: " + temperature + unit + "\n")
+        print(precipitation_label + "\n")
+        print(humidity_label + "\n")
+        print(wind_label + ": " + "\n")
+
+        print("The 7-Day Forecast is: " + "\n" + "(High, Low)" + "\n")
+
+        print(day_1 + "\n")
+        print(day_2 + "\n")
+        print(day_3 + "\n")
+        print(day_4 + "\n")
+        print(day_5 + "\n")
+        print(day_6 + "\n")
+        print(day_7 + "\n")
+
+
+WeatherMan().get_weather()
