@@ -2,88 +2,186 @@ import requests
 from bs4 import BeautifulSoup
 
 
-class WeatherApp:
+def weather_app():
 
-    def __init__(self):
-        print("Checking barometric pressure...")
+    def get_zipcode():
+        """Continually asks user for zip code until entered value looks like a valid zip code
 
-    def weatherman(self):
+        Inputs
+        ---
+        None
+
+        Returns
+        ---
+            str - a valid looking zip code
+        """
         zip_code = input(str("Please enter your five-digit zip code to find the forecast in your area: "))
+        if len(zip_code) == 5:
+            return zip_code
+        else:
+            print("That is not a proper zip code. Try again! ")
+
+        pass
+
+
+    def get_weather_data(zip_code):
+        """Performs Bing search for weather data
+
+        Inputs
+        ---
+            zip_code: str - valid looking zip code
+
+        Returns
+        ---
+            str - raw HTML data from Bing"""
+
         query = 'search?q='
+        zip_code = get_zipcode()
         weather_statement = '+weather'
         url = 'https://bing.com/' + query + zip_code + weather_statement
         r = requests.get(url, headers={'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 \
-        (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'})
+            (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'})
         soup = BeautifulSoup(r.content, "html.parser")
+        return soup
+        pass
 
-        print("\n")
+
+    def get_location_and_date(html):
+        """Processes HTML and returns the location
+
+        Inputs
+        ---
+            html: str - HTML document
+
+        Returns
+        ---
+            dict[str]: str - keys are 'location' and 'date'"""
+
+        soup = get_weather_data(zip_code=get_zipcode())
 
         location = soup.find("div", {"class": "wtr_locTitle wtr_nowrap wtr_ellipses"})
-        print("The weather for " + location.text)
 
         date_requested = soup.find("div", {"class": "b_meta"})
-        print(date_requested.text)
 
-        print("\n")
+        return location, date_requested
+
+        pass
+
+
+    def get_current(html):
+        """Processes HTML and returns the current weather information
+
+        Inputs
+        ---
+            html: str - HTML document
+
+        Returns
+        ---
+            dict[str]: str - keys are 'conditions', 'temperature', 'precipitation', 'wind', 'humidity'"""
+
+        soup = get_weather_data(zip_code=get_zipcode())
 
         current_conditions = soup.find("div", {"class": "wtr_caption"})
-        print("Current Conditions: " + current_conditions.text)
 
         temperature = soup.find("div", {"class": "wtr_currTemp b_focusTextLarge"})
-        print("Temperature: " + temperature.text + "°F")
 
         precipitation = soup.find("div", {"class": "wtr_currPerci"})
-        print(precipitation.text)
 
         wind_speed = soup.find("div", {"class": "wtr_currWind"})
-        print(wind_speed.text)
 
         humidity = soup.find("div", {"class": "wtr_currHumi"})
-        print(humidity.text)
 
-        print("\n")
+        return current_conditions, temperature, precipitation, wind_speed, humidity
 
-        # 10-Day Forecast
-        print("Your 10-Day Forecast: " + "\n")
+        pass
 
+
+    def get_ten_day(html):
+        """Processes HTML and returns the Ten Day weather information, one day at a time
+
+        Inputs
+        ---
+            html: str - HTML document
+
+        Returns
+        ---
+            generator dict[str]: str - keys are 'weekday', 'high', 'low', 'precipitation'"""
+
+        soup = get_weather_data(zip_code=get_zipcode())
+
+        # Looking in the child nodes under the wtr_innerScroll class
         forecast_element = soup.find_all("div", {"class": "wtr_innerScroll"})
         for child in forecast_element:
             children = child.find_all("div", {"class": "wtr_forecastDay wtr_noselect"})
             for kids in children:
                 target = kids.find_all("div", {"class": "vpc"})
 
-                # Weekday Text Pull
-                for tar in target:
-                    obj = tar.find_all("div", {"class": "wtr_weekday"})
-                    for x in obj:
-                        weekday = x.find_all("span", {"class": "wtr_nowrap b_promoteText"})
-                        for day in weekday:
-                            print(day.text + ":")
 
-                # High temperature pull
-                for gosh in target:
-                    line = gosh.find_all("div", {"class": "wtr_high"})
-                    for i in line:
-                        high_temp = i.find_all("span")
+                # Pulls the day of the week in date format (Sep 21)
+                for date_class in target:
+                    obj = date_class.find_all("div", {"class": "wtr_weekday"})
+                    for day in obj:
+                        weekday = day.find_all("span", {"class": "wtr_nowrap b_promoteText"})
+                        for date in weekday:
+                            return date.text
+
+                # Pulls the high temperature for that date
+                for high_temp_element in target:
+                    line = high_temp_element.find_all("div", {"class": "wtr_high"})
+                    for high_temperature in line:
+                        high_temp = high_temperature.find_all("span")
                         for temp in high_temp:
-                            print("High: " + temp.text + "F")
+                            return temp.text
 
-                # Low temperature pull
-                for targ in target:
-                    item = targ.find_all("div", {"class": "wtr_low"})
-                    for d in item:
-                        low_temp = d.find_all("span")
-                        for tamp in low_temp:
-                            print("Low: " + tamp.text + "F")
+                # Pulls the low temperature for that date
+                for low_temp_element in target:
+                    item = low_temp_element.find_all("div", {"class": "wtr_low"})
+                    for low_temperature in item:
+                        low_temp = low_temperature.find_all("span")
+                        for degrees in low_temp:
+                            return degrees.text
 
-                # Precipitation pull
-                for tim in target:
-                    new = tim.find_all("div", {"class": "wtr_daypreci"})
-                    for k in new:
-                        prec = k.find_all("span")[1:2]
-                        for pre in prec:
+                # Pulls the chance of precipitation
+                for precip in target:
+                    new = precip.find_all("div", {"class": "wtr_daypreci"})
+                    for percent_precip in new:
+                        perc_perc = percent_precip.find_all("span")[1:2]
+                        for pre in perc_perc:
                             print("Chance of Precipitation: " + pre.text + "\n")
+                        for precip_type in perc_perc:
+                            if precip_type.find_all("span")[0:1] == "wtr_snowIcon":
+                                snow_chance = "Chance of Snow: "
+                            elif precip_type.find_all("span")[0:1] == "wtr_rainIcon":
 
 
-weather = WeatherApp()
-weather.weatherman()
+    def output(current, ten_day):
+            """Takes weather information and creates a nice and pretty output for the user
+
+            Inputs
+            ---
+                current: dict[str]: str - current day's weather
+                ten_day: generator dict[str]: str - Ten Day weather information
+
+            Returns
+            ---
+                None"""
+
+
+
+
+        pass
+
+
+    def main():
+        zip_code = get_zipcode()
+
+        raw_data = get_weather_data(zip_code)
+        location = get_location_and_date(raw_data)
+        current = get_current(raw_data)
+        ten_day = get_ten_day(raw_data)
+
+        output(current, ten_day)
+
+
+if __name__ == "__main__":
+    main()
